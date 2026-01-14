@@ -1,25 +1,26 @@
 import 'package:pinyin/pinyin.dart';
 
-void main() {
+Future<void> main() async {
+  await PinyinHelper.init();
   String str = "🇨🇳Chengdu天府广场上有一只东亚石𱉼和一只黄苇𫛚😃";
 
   PinyinHelper.addPinyinDict(['𱉼=jí','𫛚=jiān,yán']);
   PinyinHelper.addMultiPinyinDict(['黄苇𫛚=huáng,wěi,yán']);
 
   //字符串拼音首字符
-  String shortpy = PinyinHelper.getShortPinyin(str); // tfgc
+  String shortpy = await PinyinHelper.getShortPinyin(str); // tfgc
 
   //字符串首字拼音
-  String firstWord = PinyinHelper.getFirstWordPinyin(str); // tian
+  String firstWord = await PinyinHelper.getFirstWordPinyin(str); // tian
 
-  String pinyin1 = PinyinHelper.getPinyin(str); //tian fu guang chang
-  String pinyin2 = PinyinHelper.getPinyin(str,
+  String pinyin1 = await PinyinHelper.getPinyin(str); //tian fu guang chang
+  String pinyin2 = await PinyinHelper.getPinyin(str,
       separator: " ", format: PinyinFormat.WITHOUT_TONE);
-  String pinyin3 = PinyinHelper.getPinyin(str,
+  String pinyin3 = await PinyinHelper.getPinyin(str,
       separator: " ", format: PinyinFormat.WITH_TONE_MARK);
 
-  PinyinHelper.getPinyinE(str); //tian fu guang chang
-  PinyinHelper.getPinyinE(str,
+  await PinyinHelper.getPinyinE(str); //tian fu guang chang
+  await PinyinHelper.getPinyinE(str,
       separator: " ", format: PinyinFormat.WITHOUT_TONE);
 
   print("shortpy: " + shortpy);
@@ -28,16 +29,16 @@ void main() {
   print("pinyin2: " + pinyin2);
   print("pinyin3: " + pinyin3);
 
-  String zhuyin1 = ZhuyinHelper.getZhuyin(str);
-  String zhuyin2 = ZhuyinHelper.getZhuyin(str,separator: "-");
+  String zhuyin1 = await ZhuyinHelper.getZhuyin(str);
+  String zhuyin2 = await ZhuyinHelper.getZhuyin(str,separator: "-");
 
   print("zhuyin1: " + zhuyin1);
   print("zhuyin2: " + zhuyin2);
 
   String name = "😃";
-  String pinyin = PinyinHelper.getPinyin(name, separator: '');
+  String pinyin = await PinyinHelper.getPinyin(name, separator: '');
   print(
-      "pinyin: $pinyin , code point length: ${name.length}, length: ${name.runes.toList().length}, sub: ${name.substring(0)} , FirstWord: ${PinyinHelper.getFirstWordPinyin(name)} , ShortPinyin: ${PinyinHelper.getShortPinyin(name)} ");
+      "pinyin: $pinyin , code point length: ${name.length}, length: ${name.runes.toList().length}, sub: ${name.substring(0)} , FirstWord: ${await PinyinHelper.getFirstWordPinyin(name)} , ShortPinyin: ${await PinyinHelper.getShortPinyin(name)} ");
 
   //添加用户自定义字典
   List<String> dict1 = ['耀=yào', '老=lǎo'];

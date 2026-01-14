@@ -34,30 +34,41 @@ dependencies:
 // Import package
 import 'package:pinyin/pinyin.dart';
 
-String text = "天府广场";
+Future<void> main() async {
+  await PinyinHelper.init();
+  String text = "天府广场";
 
-//字符串拼音首字符
-PinyinHelper.getShortPinyin(str); // tfgc
+  //字符串拼音首字符
+  await PinyinHelper.getShortPinyin(text); // tfgc
 
-//字符串首字拼音
-PinyinHelper.getFirstWordPinyin(str); // tian
+  //字符串首字拼音
+  await PinyinHelper.getFirstWordPinyin(text); // tian
 
-//无法转换拼音会 throw PinyinException
-PinyinHelper.getPinyin(text);
-PinyinHelper.getPinyin(text, separator: " ", format: PinyinFormat.WITHOUT_TONE);//tian fu guang chang
+  //无法转换拼音会 throw PinyinException
+  await PinyinHelper.getPinyin(text);
+  await PinyinHelper.getPinyin(text, separator: " ", format: PinyinFormat.WITHOUT_TONE);//tian fu guang chang
 
-//无法转换拼音 默认用' '替代
-PinyinHelper.getPinyinE(text);
-PinyinHelper.getPinyinE(text, separator: " ", defPinyin: '#', format: PinyinFormat.WITHOUT_TONE);//tian fu guang chang
+  //无法转换拼音 默认用' '替代
+  await PinyinHelper.getPinyinE(text);
+  await PinyinHelper.getPinyinE(text, separator: " ", defPinyin: '#', format: PinyinFormat.WITHOUT_TONE);//tian fu guang chang
 
-//添加用户自定义字典
-List<String> dict1 = ['耀=yào','老=lǎo'];
-PinyinHelper.addPinyinDict(dict1);//拼音字典
-List<String> dict2 = ['奇偶=jī,ǒu','成都=chéng,dū'];
-PinyinHelper.addMultiPinyinDict(dict2);//多音字词组字典
-List<String> dict3 = ['倆=俩','們=们'];
-ChineseHelper.addChineseDict(dict3);//繁体字字典
+  //添加用户自定义字典
+  List<String> dict1 = ['耀=yào','老=lǎo'];
+  PinyinHelper.addPinyinDict(dict1);//拼音字典
+  List<String> dict2 = ['奇偶=jī,ǒu','成都=chéng,dū'];
+  PinyinHelper.addMultiPinyinDict(dict2);//多音字词组字典
+  List<String> dict3 = ['倆=俩','們=们'];
+  ChineseHelper.addChineseDict(dict3);//繁体字字典
+}
 
+```
+
+## SQLite assets
+
+Run the local converter to generate `assets/pinyin.db` from the original maps:
+
+```bash
+dart run dev/tools/build_sqlite.dart
 ```
 
 ## Screenshots

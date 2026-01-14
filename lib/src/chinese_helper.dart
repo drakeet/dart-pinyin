@@ -1,6 +1,7 @@
-import '../data/phrase_simp_to_trad.dart';
-import '../data/phrase_trad_to_simp.dart';
+import 'lru_cache.dart';
 import 'phrase_converter.dart';
+import 'pinyin_constants.dart';
+import 'pinyin_db.dart';
 import 'pinyin_resource.dart';
 
 /// Chinese Helper.
@@ -8,36 +9,37 @@ class ChineseHelper {
   static int? minPhraseLength;
   static int? maxPhraseLength;
 
-  static Map<String, String>? _charT2SMap;
+  static final Map<String, String> _customCharT2SMap = {};
+  static final Map<String, String> _customCharS2TMap = {};
+  static final Map<String, String> _customPhraseT2SMap = {};
+  static final Map<String, String> _customPhraseS2TMap = {};
 
-  static Map<String, String> get charT2SMap {
-    _charT2SMap ??= PinyinResource.getTradToSimpResource();
-    return _charT2SMap!;
-  }
+  static final LruCache<String, String?> _charT2SCache =
+      LruCache<String, String?>(capacity: 4096);
+  static final LruCache<String, String?> _charS2TCache =
+      LruCache<String, String?>(capacity: 4096);
+  static final LruCache<String, String?> _phraseT2SCache =
+      LruCache<String, String?>(capacity: 2048);
+  static final LruCache<String, String?> _phraseS2TCache =
+      LruCache<String, String?>(capacity: 2048);
+
+  static Future<void> init({String? databasePath}) =>
+      PinyinDatabase.instance.init(databasePath: databasePath);
 
   @Deprecated('replaced by tradToSimpMap and simpToTradMap')
-  static Map<String, String> get chineseMap => charT2SMap;
+  static Map<String, String> get chineseMap => _customCharT2SMap;
 
-  static Map<String, String>? _charS2TMap;
+  @Deprecated('SQLite-backed lookup only; this exposes custom additions only.')
+  static Map<String, String> get charT2SMap => _customCharT2SMap;
 
-  static Map<String, String> get charS2TMap {
-    _charS2TMap ??= PinyinResource.getSimpToTradResource();
-    return _charS2TMap!;
-  }
+  @Deprecated('SQLite-backed lookup only; this exposes custom additions only.')
+  static Map<String, String> get charS2TMap => _customCharS2TMap;
 
-  static Map<String, String>? _phraseT2SMap;
+  @Deprecated('SQLite-backed lookup only; this exposes custom additions only.')
+  static Map<String, String> get phraseT2SMap => _customPhraseT2SMap;
 
-  static Map<String, String> get phraseT2SMap {
-    _phraseT2SMap ??= PinyinResource.getPhraseTradToSimpResource();
-    return _phraseT2SMap!;
-  }
-
-  static Map<String, String>? _phraseS2TMap;
-
-  static Map<String, String> get phraseS2TMap {
-    _phraseS2TMap ??= PinyinResource.getPhraseSimpToTradResource();
-    return _phraseS2TMap!;
-  }
+  @Deprecated('SQLite-backed lookup only; this exposes custom additions only.')
+  static Map<String, String> get phraseS2TMap => _customPhraseS2TMap;
 
   static bool isChineseCode(int code) =>
       (code == 0x3007) || // "〇" is also a Chinese character  〇也是汉字
@@ -71,12 +73,22 @@ class ChineseHelper {
   /// 判断某个字符是否为繁体字
   /// @param c 需要判断的字符
   /// @return 是繁体字返回true，否则返回false
-  static bool isSimplifiedChinese(String c) => charS2TMap.containsKey(c);
+  static Future<bool> isSimplifiedChinese(String c) async {
+    final custom = _customCharS2TMap.containsKey(c);
+    if (custom) return true;
+    final value = await _lookupCharS2T(c);
+    return value != null;
+  }
 
   /// 判断某个字符是否为繁体字
   /// @param c 需要判断的字符
   /// @return 是繁体字返回true，否则返回false
-  static bool isTraditionalChinese(String c) => charT2SMap.containsKey(c);
+  static Future<bool> isTraditionalChinese(String c) async {
+    final custom = _customCharT2SMap.containsKey(c);
+    if (custom) return true;
+    final value = await _lookupCharT2S(c);
+    return value != null;
+  }
 
   /// 判断字符串中是否包含中文
   /// @param str 字符串
@@ -94,27 +106,36 @@ class ChineseHelper {
   /// 将单个繁体字转换为简体字
   /// @param c 需要转换的繁体字
   /// @return 转换后的简体字
-  static String convertCharToSimplifiedChinese(String c) => charT2SMap[c] ?? c;
+  static Future<String> convertCharToSimplifiedChinese(String c) async =>
+      _customCharT2SMap[c] ?? await _lookupCharT2S(c) ?? c;
 
   /// 将单个简体字转换为繁体字
   /// @param c 需要转换的简体字
   /// @return 转换后的繁体字
-  static String convertCharToTraditionalChinese(String c) => charS2TMap[c] ?? c;
+  static Future<String> convertCharToTraditionalChinese(String c) async =>
+      _customCharS2TMap[c] ?? await _lookupCharS2T(c) ?? c;
 
   /// 将繁体字转换为简体字
   /// @param str 需要转换的繁体字
   /// @return 转换后的简体字
-  static String convertToSimplifiedChinese(String str) =>
-      _stringConvert(str, phraseT2SMap, convertCharToSimplifiedChinese, minPhraseLengthT2S, maxPhraseLengthT2S);
+  static Future<String> convertToSimplifiedChinese(String str) =>
+      _stringConvert(str, _lookupPhraseT2S, convertCharToSimplifiedChinese,
+          minPhraseLengthT2S, maxPhraseLengthT2S);
 
   /// 将简体字转换为繁体字
   /// @param str 需要转换的简体字
   /// @return 转换后的繁体字
-  static String convertToTraditionalChinese(String str) =>
-      _stringConvert(str, phraseS2TMap, convertCharToTraditionalChinese, minPhraseLengthS2T, maxPhraseLengthS2T);
+  static Future<String> convertToTraditionalChinese(String str) =>
+      _stringConvert(str, _lookupPhraseS2T, convertCharToTraditionalChinese,
+          minPhraseLengthS2T, maxPhraseLengthS2T);
 
-  static String _stringConvert(
-      String str, Map<String, String> dict, String Function(String) singleCharConvert, int min, int max) {
+  static Future<String> _stringConvert(
+    String str,
+    Future<String?> Function(String) phraseLookup,
+    Future<String> Function(String) singleCharConvert,
+    int min,
+    int max,
+  ) async {
     StringBuffer sb = StringBuffer();
     final runes = str.runes.toList();
     int i = 0;
@@ -123,10 +144,10 @@ class ChineseHelper {
       String _char = String.fromCharCode(runes[i]);
       bool isHan = ChineseHelper.isChinese(_char);
 
-      PhraseConvert? node = stConvertForPhrase(subStr, dict, min, max);
+      PhraseConvert? node = await stConvertForPhrase(subStr, phraseLookup, min, max);
       if (node == null) {
         if (isHan) {
-          sb.write(singleCharConvert.call(String.fromCharCode(runes[i])));
+          sb.write(await singleCharConvert.call(String.fromCharCode(runes[i])));
         } else {
           sb.write(_char);
         }
@@ -144,25 +165,34 @@ class ChineseHelper {
   /// @param str 需要转换的字符串
   /// @param dict 转换词典
   /// @return 转换结果
-  static PhraseConvert? stConvertForPhrase(String str, Map<String, String> dict, int min, int max) =>
-      convertForPhrase(
-        str,
-        dict,
-        (subStr, result) => result != null && result.isNotEmpty
-            ? PhraseConvert(word: subStr, result: result)
-            : null,
-        minPhraseLength ?? min,
-        maxPhraseLength ?? max,
-      );
+  static Future<PhraseConvert?> stConvertForPhrase(
+    String str,
+    Future<String?> Function(String) phraseLookup,
+    int min,
+    int max,
+  ) async {
+    final runes = str.runes.toList();
+    final minLen = minPhraseLength ?? min;
+    final maxLen = maxPhraseLength ?? max;
+    if (runes.length < minLen) return null;
+    for (int end = (runes.length < maxLen ? runes.length : maxLen); end >= minLen; end--) {
+      String subStr = String.fromCharCodes(runes.sublist(0, end));
+      String? result = await phraseLookup(subStr);
+      if (result != null && result.isNotEmpty) {
+        return PhraseConvert(word: subStr, result: result);
+      }
+    }
+    return null;
+  }
 
   /// 添加繁体字字典
   static void addSimpToTradMap(Map<String, String> map) {
-    charS2TMap.addAll(map);
+    _customCharS2TMap.addAll(map);
   }
 
   /// 添加简体字字典
   static void addTradToSimpMap(Map<String, String> map) {
-    charT2SMap.addAll(map);
+    _customCharT2SMap.addAll(map);
   }
 
   /// 添加繁体字字典
@@ -171,5 +201,45 @@ class ChineseHelper {
     final map = PinyinResource.getResource(list);
     addTradToSimpMap(map);
     addSimpToTradMap(map.map((key, value) => MapEntry(value, key)));
+  }
+
+  static Future<String?> _lookupCharT2S(String key) async {
+    if (_charT2SCache.containsKey(key)) {
+      return _charT2SCache.get(key);
+    }
+    final value = await PinyinDatabase.instance.lookup(tableTradToSimp, key);
+    _charT2SCache.put(key, value);
+    return value;
+  }
+
+  static Future<String?> _lookupCharS2T(String key) async {
+    if (_charS2TCache.containsKey(key)) {
+      return _charS2TCache.get(key);
+    }
+    final value = await PinyinDatabase.instance.lookup(tableSimpToTrad, key);
+    _charS2TCache.put(key, value);
+    return value;
+  }
+
+  static Future<String?> _lookupPhraseT2S(String key) async {
+    final custom = _customPhraseT2SMap[key];
+    if (custom != null) return custom;
+    if (_phraseT2SCache.containsKey(key)) {
+      return _phraseT2SCache.get(key);
+    }
+    final value = await PinyinDatabase.instance.lookup(tablePhraseT2S, key);
+    _phraseT2SCache.put(key, value);
+    return value;
+  }
+
+  static Future<String?> _lookupPhraseS2T(String key) async {
+    final custom = _customPhraseS2TMap[key];
+    if (custom != null) return custom;
+    if (_phraseS2TCache.containsKey(key)) {
+      return _phraseS2TCache.get(key);
+    }
+    final value = await PinyinDatabase.instance.lookup(tablePhraseS2T, key);
+    _phraseS2TCache.put(key, value);
+    return value;
   }
 }

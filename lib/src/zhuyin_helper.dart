@@ -25,12 +25,12 @@ class ZhuyinHelper {
   };
 
   /// 将字符串转换成相应格式的注音
-  static String getZhuyin(
+  static Future<String> getZhuyin(
     String str, {
     String separator = ' ',
     PinyinFormat format = PinyinFormat.WITH_TONE_MARK,
-  }) {
-    String pinyin = PinyinHelper.getPinyin(
+  }) async {
+    String pinyin = await PinyinHelper.getPinyin(
       str,
       format: PinyinFormat.WITH_TONE_NUMBER,
     );
