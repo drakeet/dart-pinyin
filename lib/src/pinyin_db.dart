@@ -1,27 +1,39 @@
-import 'pinyin_db_base.dart';
-import 'pinyin_db_stub.dart'
-    if (dart.library.ui) 'pinyin_db_flutter.dart'
-    if (dart.library.io) 'pinyin_db_io.dart';
+import 'dart:io';
+
+import 'package:sqlite3/sqlite3.dart';
 
 class PinyinDatabase {
-  PinyinDatabase._(this._impl);
+  PinyinDatabase._();
 
-  static final PinyinDatabase _instance = PinyinDatabase._(PinyinDatabaseImpl());
-
-  final PinyinDatabaseBase _impl;
-  Future<void>? _initFuture;
+  static final PinyinDatabase _instance = PinyinDatabase._();
+  Database? _db;
 
   static PinyinDatabase get instance => _instance;
 
-  Future<void> init({String? databasePath}) {
-    _initFuture ??= _impl.init(databasePath: databasePath);
-    return _initFuture!;
+  void init({String? databasePath}) {
+    if (_db != null) return;
+    final dbPath = databasePath ?? 'assets/pinyin.db';
+    if (!File(dbPath).existsSync()) {
+      throw StateError('Database file not found: $dbPath');
+    }
+    _db = sqlite3.open(dbPath, mode: OpenMode.readOnly);
   }
 
-  Future<String?> lookup(String table, String key) async {
-    await init();
-    return _impl.lookup(table, key);
+  String? lookup(String table, String key) {
+    final db = _db;
+    if (db == null) {
+      throw StateError('PinyinDatabase is not initialized.');
+    }
+    final result = db.select(
+      'select value from $table where key = ? limit 1',
+      [key],
+    );
+    if (result.isEmpty) return null;
+    return result.first['value'] as String?;
   }
 
-  Future<void> close() => _impl.close();
+  void close() {
+    _db?.dispose();
+    _db = null;
+  }
 }

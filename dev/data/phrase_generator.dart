@@ -13,7 +13,7 @@ Future<void> main() async {
   // phraseMap = {};
   PinyinHelper.minPhraseLength = 1;
   PinyinHelper.maxPhraseLength = 1;
-  await PinyinHelper.init();
+  PinyinHelper.init();
 
   final input = File('dev/data/large_pinyin.txt').openRead();
   final fields = await input.transform(utf8.decoder).transform(CsvToListConverter(
@@ -34,11 +34,11 @@ Future<void> main() async {
   bool alreadyWrite = false;
 
   for (var field in fields) {
-    final word = await ChineseHelper.convertToSimplifiedChinese(field[0].trim()); // some phrases are mixtures of both trad chars and simp chars
+    final word = ChineseHelper.convertToSimplifiedChinese(field[0].trim()); // some phrases are mixtures of both trad chars and simp chars
     if (errorWords.map((e) => word.contains(e)).reduce((a, b) => a || b)) continue;
     final pinyin = field[1].trim().replaceAll(' ', PinyinHelper.pinyinSeparator);
     try {
-      final autoPinyin = await PinyinHelper.getPinyin(
+      final autoPinyin = PinyinHelper.getPinyin(
         word,
         format: PinyinFormat.WITH_TONE_MARK,
         separator: PinyinHelper.pinyinSeparator,

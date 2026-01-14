@@ -4,15 +4,15 @@ import 'dart:convert';
 
 import 'package:pinyin/pinyin.dart';
 
-Future<void> main() async {
-  await ChineseHelper.init();
+void main() {
+  ChineseHelper.init();
   var path = 'example/simp';
   new File(path)
       .openRead()
       .map(utf8.decode)
       .transform(new LineSplitter())
       .forEach((l) async {
-        if (await ChineseHelper.convertToSimplifiedChinese(l) != l) {
+        if (ChineseHelper.convertToSimplifiedChinese(l) != l) {
           print(l);
         }
   });

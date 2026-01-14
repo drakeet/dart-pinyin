@@ -23,7 +23,7 @@ class ChineseHelper {
   static final LruCache<String, String?> _phraseS2TCache =
       LruCache<String, String?>(capacity: 2048);
 
-  static Future<void> init({String? databasePath}) =>
+  static void init({String? databasePath}) =>
       PinyinDatabase.instance.init(databasePath: databasePath);
 
   @Deprecated('replaced by tradToSimpMap and simpToTradMap')
@@ -73,20 +73,20 @@ class ChineseHelper {
   /// 判断某个字符是否为繁体字
   /// @param c 需要判断的字符
   /// @return 是繁体字返回true，否则返回false
-  static Future<bool> isSimplifiedChinese(String c) async {
+  static bool isSimplifiedChinese(String c) {
     final custom = _customCharS2TMap.containsKey(c);
     if (custom) return true;
-    final value = await _lookupCharS2T(c);
+    final value = _lookupCharS2T(c);
     return value != null;
   }
 
   /// 判断某个字符是否为繁体字
   /// @param c 需要判断的字符
   /// @return 是繁体字返回true，否则返回false
-  static Future<bool> isTraditionalChinese(String c) async {
+  static bool isTraditionalChinese(String c) {
     final custom = _customCharT2SMap.containsKey(c);
     if (custom) return true;
-    final value = await _lookupCharT2S(c);
+    final value = _lookupCharT2S(c);
     return value != null;
   }
 
@@ -106,36 +106,36 @@ class ChineseHelper {
   /// 将单个繁体字转换为简体字
   /// @param c 需要转换的繁体字
   /// @return 转换后的简体字
-  static Future<String> convertCharToSimplifiedChinese(String c) async =>
-      _customCharT2SMap[c] ?? await _lookupCharT2S(c) ?? c;
+  static String convertCharToSimplifiedChinese(String c) =>
+      _customCharT2SMap[c] ?? _lookupCharT2S(c) ?? c;
 
   /// 将单个简体字转换为繁体字
   /// @param c 需要转换的简体字
   /// @return 转换后的繁体字
-  static Future<String> convertCharToTraditionalChinese(String c) async =>
-      _customCharS2TMap[c] ?? await _lookupCharS2T(c) ?? c;
+  static String convertCharToTraditionalChinese(String c) =>
+      _customCharS2TMap[c] ?? _lookupCharS2T(c) ?? c;
 
   /// 将繁体字转换为简体字
   /// @param str 需要转换的繁体字
   /// @return 转换后的简体字
-  static Future<String> convertToSimplifiedChinese(String str) =>
+  static String convertToSimplifiedChinese(String str) =>
       _stringConvert(str, _lookupPhraseT2S, convertCharToSimplifiedChinese,
           minPhraseLengthT2S, maxPhraseLengthT2S);
 
   /// 将简体字转换为繁体字
   /// @param str 需要转换的简体字
   /// @return 转换后的繁体字
-  static Future<String> convertToTraditionalChinese(String str) =>
+  static String convertToTraditionalChinese(String str) =>
       _stringConvert(str, _lookupPhraseS2T, convertCharToTraditionalChinese,
           minPhraseLengthS2T, maxPhraseLengthS2T);
 
-  static Future<String> _stringConvert(
+  static String _stringConvert(
     String str,
-    Future<String?> Function(String) phraseLookup,
-    Future<String> Function(String) singleCharConvert,
+    String? Function(String) phraseLookup,
+    String Function(String) singleCharConvert,
     int min,
     int max,
-  ) async {
+  ) {
     StringBuffer sb = StringBuffer();
     final runes = str.runes.toList();
     int i = 0;
@@ -144,10 +144,10 @@ class ChineseHelper {
       String _char = String.fromCharCode(runes[i]);
       bool isHan = ChineseHelper.isChinese(_char);
 
-      PhraseConvert? node = await stConvertForPhrase(subStr, phraseLookup, min, max);
+      PhraseConvert? node = stConvertForPhrase(subStr, phraseLookup, min, max);
       if (node == null) {
         if (isHan) {
-          sb.write(await singleCharConvert.call(String.fromCharCode(runes[i])));
+          sb.write(singleCharConvert.call(String.fromCharCode(runes[i])));
         } else {
           sb.write(_char);
         }
@@ -165,19 +165,19 @@ class ChineseHelper {
   /// @param str 需要转换的字符串
   /// @param dict 转换词典
   /// @return 转换结果
-  static Future<PhraseConvert?> stConvertForPhrase(
+  static PhraseConvert? stConvertForPhrase(
     String str,
-    Future<String?> Function(String) phraseLookup,
+    String? Function(String) phraseLookup,
     int min,
     int max,
-  ) async {
+  ) {
     final runes = str.runes.toList();
     final minLen = minPhraseLength ?? min;
     final maxLen = maxPhraseLength ?? max;
     if (runes.length < minLen) return null;
     for (int end = (runes.length < maxLen ? runes.length : maxLen); end >= minLen; end--) {
       String subStr = String.fromCharCodes(runes.sublist(0, end));
-      String? result = await phraseLookup(subStr);
+      String? result = phraseLookup(subStr);
       if (result != null && result.isNotEmpty) {
         return PhraseConvert(word: subStr, result: result);
       }
@@ -203,42 +203,42 @@ class ChineseHelper {
     addSimpToTradMap(map.map((key, value) => MapEntry(value, key)));
   }
 
-  static Future<String?> _lookupCharT2S(String key) async {
+  static String? _lookupCharT2S(String key) {
     if (_charT2SCache.containsKey(key)) {
       return _charT2SCache.get(key);
     }
-    final value = await PinyinDatabase.instance.lookup(tableTradToSimp, key);
+    final value = PinyinDatabase.instance.lookup(tableTradToSimp, key);
     _charT2SCache.put(key, value);
     return value;
   }
 
-  static Future<String?> _lookupCharS2T(String key) async {
+  static String? _lookupCharS2T(String key) {
     if (_charS2TCache.containsKey(key)) {
       return _charS2TCache.get(key);
     }
-    final value = await PinyinDatabase.instance.lookup(tableSimpToTrad, key);
+    final value = PinyinDatabase.instance.lookup(tableSimpToTrad, key);
     _charS2TCache.put(key, value);
     return value;
   }
 
-  static Future<String?> _lookupPhraseT2S(String key) async {
+  static String? _lookupPhraseT2S(String key) {
     final custom = _customPhraseT2SMap[key];
     if (custom != null) return custom;
     if (_phraseT2SCache.containsKey(key)) {
       return _phraseT2SCache.get(key);
     }
-    final value = await PinyinDatabase.instance.lookup(tablePhraseT2S, key);
+    final value = PinyinDatabase.instance.lookup(tablePhraseT2S, key);
     _phraseT2SCache.put(key, value);
     return value;
   }
 
-  static Future<String?> _lookupPhraseS2T(String key) async {
+  static String? _lookupPhraseS2T(String key) {
     final custom = _customPhraseS2TMap[key];
     if (custom != null) return custom;
     if (_phraseS2TCache.containsKey(key)) {
       return _phraseS2TCache.get(key);
     }
-    final value = await PinyinDatabase.instance.lookup(tablePhraseS2T, key);
+    final value = PinyinDatabase.instance.lookup(tablePhraseS2T, key);
     _phraseS2TCache.put(key, value);
     return value;
   }

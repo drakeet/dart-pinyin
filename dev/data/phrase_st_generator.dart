@@ -10,7 +10,7 @@ Future<void> main() async {
   // https://github.com/BYVoid/OpenCC/blob/master/data/dictionary/STPhrases.txt
   // https://github.com/BYVoid/OpenCC/blob/master/data/dictionary/TSPhrases.txt
   // old multi_pinyin_dict are totally covered by phrase_map
-  await ChineseHelper.init();
+  ChineseHelper.init();
   final s2t = ['dev/data/STPhrases.txt', './lib/data/phrase_simp_to_trad.dart', 'S2T'];
   final t2s = ['dev/data/TSPhrases.txt', './lib/data/phrase_trad_to_simp.dart', 'T2S'];
 

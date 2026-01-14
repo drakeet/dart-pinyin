@@ -4,7 +4,7 @@ import 'pinyin_db.dart';
 
 /// Pinyin Resource.
 class PinyinResource {
-  static Future<void> init({String? databasePath}) =>
+  static void init({String? databasePath}) =>
       PinyinDatabase.instance.init(databasePath: databasePath);
 
   /// get Resource.

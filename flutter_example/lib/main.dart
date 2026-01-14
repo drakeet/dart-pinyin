@@ -50,13 +50,13 @@ class _MyHomePageState extends State<MyHomePage> {
   String result2 = '';
   String result3 = '';
 
-  Future<void> _onSubmit() async {
-    await PinyinHelper.init();
+  void _onSubmit() {
+    PinyinHelper.init();
     // 调用你的三个函数，并更新结果变量
     // 假设 func1、func2、func3 是你已经实现的函数
-    result1 = await PinyinHelper.getPinyin(_inputController.text);
-    result2 = await ChineseHelper.convertToSimplifiedChinese(_inputController.text);
-    result3 = await ChineseHelper.convertToTraditionalChinese(_inputController.text);
+    result1 = PinyinHelper.getPinyin(_inputController.text);
+    result2 = ChineseHelper.convertToSimplifiedChinese(_inputController.text);
+    result3 = ChineseHelper.convertToTraditionalChinese(_inputController.text);
 
     // 刷新界面
     setState(() {});

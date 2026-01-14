@@ -1,5 +1,6 @@
 import 'dart:collection';
 
+import '../pinyin.dart';
 import 'chinese_helper.dart';
 import 'lru_cache.dart';
 import 'phrase_converter.dart';
@@ -27,7 +28,7 @@ class PinyinHelper {
   static final LruCache<String, String?> _phraseCache =
       LruCache<String, String?>(capacity: 2048);
 
-  static Future<void> init({String? databasePath}) =>
+  static void init({String? databasePath}) =>
       PinyinDatabase.instance.init(databasePath: databasePath);
 
   @Deprecated('SQLite-backed lookup only; this exposes custom additions only.')
@@ -53,13 +54,13 @@ class PinyinHelper {
     maxPhraseLength = length;
   }
 
-  static Future<String> _getPinyin(
+  static String _getPinyin(
     String str,
     bool isShort,
     String separator,
     Function(StringBuffer sb, String char) onKeyError,
     PinyinFormat format,
-  ) async {
+  ) {
     if (str.isEmpty) return '';
     StringBuffer sb = StringBuffer();
     // str = ChineseHelper.convertToSimplifiedChinese(str); // now only needed for phrases.
@@ -79,10 +80,10 @@ class PinyinHelper {
       }
 
       PhraseConvert? node =
-          await convertToPinyinForPhrase(subStr, separator, format, isShort: isShort);
+          convertToPinyinForPhrase(subStr, separator, format, isShort: isShort);
       if (node == null) {
         if (isHan) {
-          List<String> pinyinArray = await convertToPinyinArray(_char, format);
+          List<String> pinyinArray = convertToPinyinArray(_char, format);
           if (pinyinArray.isNotEmpty) {
             if (isShort) {
               sb.write(pinyinArray[0].substring(0, 1));
@@ -111,7 +112,7 @@ class PinyinHelper {
   /// 获取字符串首字拼音
   /// @param str 需要转换的字符串
   /// @return 首字拼音 (成都 cheng)
-  static Future<String> getFirstWordPinyin(String str) async {
+  static String getFirstWordPinyin(String str) {
     if (str.isEmpty) return '';
     // str = ChineseHelper.convertToSimplifiedChinese(str); // now only needed for phrases.
 
@@ -122,13 +123,13 @@ class PinyinHelper {
 
     while (i < runeLen) {
       String subStr = String.fromCharCode(runes[i]);
-      PhraseConvert? node = await convertToPinyinForPhrase(subStr, ' ', format);
+      PhraseConvert? node = convertToPinyinForPhrase(subStr, ' ', format);
       if (node == null) {
         String _char = String.fromCharCode(runes[i]);
         bool isHan = ChineseHelper.isChinese(_char);
 
         if (isHan) {
-          List<String> pinyinArray = await convertToPinyinArray(_char, format);
+          List<String> pinyinArray = convertToPinyinArray(_char, format);
           return pinyinArray[0];
         }
       }
@@ -142,7 +143,7 @@ class PinyinHelper {
   /// 获取字符串对应拼音的首字母
   /// @param str 需要转换的字符串
   /// @return 对应拼音的首字母 (成都 cd)
-  static Future<String> getShortPinyin(String str) =>
+  static String getShortPinyin(String str) =>
       _getPinyin(str, true, ' ', (sb, char) => null, PinyinFormat.WITHOUT_TONE);
 
   /// 将字符串转换成相应格式的拼音
@@ -150,7 +151,7 @@ class PinyinHelper {
   /// @param separator 拼音分隔符 def: ' '
   /// @param format 拼音格式 def: PinyinFormat.WITHOUT_TONE
   /// @return 字符串的拼音(成都 cheng du)
-  static Future<String> getPinyin(
+  static String getPinyin(
     String str, {
     String separator = ' ',
     PinyinFormat format = PinyinFormat.WITHOUT_TONE,
@@ -164,7 +165,7 @@ class PinyinHelper {
   /// @param defPinyin 默认拼音 def: ' '
   /// @param format 拼音格式 def: PinyinFormat.WITHOUT_TONE
   /// @return 字符串的拼音(成都 cheng du)
-  static Future<String> getPinyinE(
+  static String getPinyinE(
     String str, {
     String separator = ' ',
     String defPinyin = ' ',
@@ -181,7 +182,7 @@ class PinyinHelper {
   /// @param format 拼音格式
   /// @return 词组拼音
   @Deprecated('replaced by convertToPinyinForPhrase')
-  static Future<PhraseConvert?> convertToMultiPinyin(
+  static PhraseConvert? convertToMultiPinyin(
     String str,
     String separator,
     PinyinFormat format, {
@@ -194,13 +195,13 @@ class PinyinHelper {
   /// @param separator 拼音分隔符
   /// @param format 拼音格式
   /// @return 词组拼音
-  static Future<PhraseConvert?> convertToPinyinForPhrase(
+  static PhraseConvert? convertToPinyinForPhrase(
     String str,
     String separator,
     PinyinFormat format, {
     bool isShort = false,
-  }) async {
-    final simplified = await ChineseHelper.convertToSimplifiedChinese(str);
+  }) {
+    final simplified = ChineseHelper.convertToSimplifiedChinese(str);
     final runes = simplified.runes.toList();
     if (runes.length < (minPhraseLength ?? minPhraseLengthPy)) {
       return null;
@@ -213,7 +214,7 @@ class PinyinHelper {
         end--) {
       final subStr = String.fromCharCodes(runes.sublist(0, end));
       String? phraseValue = _customPhraseMap[subStr];
-      phraseValue ??= await _lookupPhraseValue(subStr);
+      phraseValue ??= _lookupPhraseValue(subStr);
       if (phraseValue != null && phraseValue.isNotEmpty) {
         List<String> strList = phraseValue.split(pinyinSeparator);
         StringBuffer sb = StringBuffer();
@@ -236,11 +237,11 @@ class PinyinHelper {
   /// @param c 需要转换成拼音的汉字
   /// @param format 拼音格式
   /// @return 汉字的拼音
-  static Future<List<String>> convertToPinyinArray(
+  static List<String> convertToPinyinArray(
     String c,
     PinyinFormat format,
-  ) async {
-    final pinyin = _customPinyinMap[c] ?? await _lookupPinyinValue(c);
+  ) {
+    final pinyin = _customPinyinMap[c] ?? _lookupPinyinValue(c);
     return pinyin == null ? [] : formatPinyin(pinyin, format);
   }
 
@@ -316,15 +317,15 @@ class PinyinHelper {
   /// 将单个汉字转换成带声调格式的拼音
   /// @param c 需要转换成拼音的汉字
   /// @return 字符串的拼音
-  static Future<List<String>> convertCharToPinyinArray(String c) {
+  static List<String> convertCharToPinyinArray(String c) {
     return convertToPinyinArray(c, PinyinFormat.WITH_TONE_MARK);
   }
 
   /// 判断一个汉字是否为多音字
   /// @param c汉字
   /// @return 判断结果，是汉字返回true，否则返回false
-  static Future<bool> hasMultiPinyin(String c) async {
-    List<String> pinyinArray = await convertCharToPinyinArray(c);
+  static bool hasMultiPinyin(String c) {
+    List<String> pinyinArray = convertCharToPinyinArray(c);
     return pinyinArray.isNotEmpty;
   }
 
@@ -350,20 +351,20 @@ class PinyinHelper {
     _customPhraseMap.addAll(map);
   }
 
-  static Future<String?> _lookupPinyinValue(String key) async {
+  static String? _lookupPinyinValue(String key) {
     if (_pinyinCache.containsKey(key)) {
       return _pinyinCache.get(key);
     }
-    final value = await PinyinDatabase.instance.lookup(tablePinyin, key);
+    final value = PinyinDatabase.instance.lookup(tablePinyin, key);
     _pinyinCache.put(key, value);
     return value;
   }
 
-  static Future<String?> _lookupPhraseValue(String key) async {
+  static String? _lookupPhraseValue(String key) {
     if (_phraseCache.containsKey(key)) {
       return _phraseCache.get(key);
     }
-    final value = await PinyinDatabase.instance.lookup(tablePhrasePinyin, key);
+    final value = PinyinDatabase.instance.lookup(tablePhrasePinyin, key);
     _phraseCache.put(key, value);
     return value;
   }

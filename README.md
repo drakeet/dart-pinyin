@@ -20,6 +20,11 @@ pinyin是一个汉字转拼音的Dart Package. 主要参考Java开源类库[jpin
 
 This package is originally authored by @Sky24n, @tanghongliang, @duwen and @thl from @flutterchina. We are deeply grateful for their contributions. 
 
+## Storage refactor (SQLite + cache)
+
+- Pinyin/S2T/T2S dictionaries now live in `assets/pinyin.db` instead of giant Dart maps.
+- Runtime lookups use `sqlite3` with LRU in-memory caches and sync APIs by default.
+
 ## Pub
 
 ```yaml
@@ -34,23 +39,23 @@ dependencies:
 // Import package
 import 'package:pinyin/pinyin.dart';
 
-Future<void> main() async {
-  await PinyinHelper.init();
+void main() {
+  PinyinHelper.init();
   String text = "天府广场";
 
   //字符串拼音首字符
-  await PinyinHelper.getShortPinyin(text); // tfgc
+  PinyinHelper.getShortPinyin(text); // tfgc
 
   //字符串首字拼音
-  await PinyinHelper.getFirstWordPinyin(text); // tian
+  PinyinHelper.getFirstWordPinyin(text); // tian
 
   //无法转换拼音会 throw PinyinException
-  await PinyinHelper.getPinyin(text);
-  await PinyinHelper.getPinyin(text, separator: " ", format: PinyinFormat.WITHOUT_TONE);//tian fu guang chang
+  PinyinHelper.getPinyin(text);
+  PinyinHelper.getPinyin(text, separator: " ", format: PinyinFormat.WITHOUT_TONE);//tian fu guang chang
 
   //无法转换拼音 默认用' '替代
-  await PinyinHelper.getPinyinE(text);
-  await PinyinHelper.getPinyinE(text, separator: " ", defPinyin: '#', format: PinyinFormat.WITHOUT_TONE);//tian fu guang chang
+  PinyinHelper.getPinyinE(text);
+  PinyinHelper.getPinyinE(text, separator: " ", defPinyin: '#', format: PinyinFormat.WITHOUT_TONE);//tian fu guang chang
 
   //添加用户自定义字典
   List<String> dict1 = ['耀=yào','老=lǎo'];
