@@ -1,86 +1,101 @@
-# dart-pinyin (Dart package for converting Chinese characters to Pinyin and Zhuyin)
+# dart-pinyin
 
-pinyin is a dart package for converting Chinese characters to Pinyin and Zhuyin, with reference to java library [jpinyin](https://github.com/SilenceDut/jpinyin).  
-1. Accurate, complete dictionary
-2. Swift convertion
-3. Multiple formations: without tone, with tone mark, with tone number, abbr  
-4. Heteronym support, including words, place names, and chengyus
-5. Simplified and traditional Chinese convertion
-6. Custom dictionary support
-7. Zhuyin (bopomofo) support, with reference to python library[python-zhuyin](https://github.com/rku1999/python-zhuyin)，authored by @w830207
+将中文转换为拼音与注音，支持多音字、词组歧义消解，以及简繁转换。  
+灵感来自 Java 库 [jpinyin](https://github.com/SilenceDut/jpinyin)。
 
-pinyin是一个汉字转拼音的Dart Package. 主要参考Java开源类库[jpinyin](https://github.com/SilenceDut/jpinyin).  
-1. 准确、完善的字库  
-2. 拼音转换速度快  
-3. 支持多种拼音输出格式：带音标、不带音标、数字表示音标以及拼音首字母输出格式  
-4. 支持常见多音字的识别，其中包括词组、成语、地名等  
-5. 简繁体中文转换  
-6. 支持添加用户自定义字典  
-7. 支援漢字轉注音 參考自[python-zhuyin](https://github.com/rku1999/python-zhuyin)，authored by @w830207
+## 功能特性
 
-This package is originally authored by @Sky24n, @tanghongliang, @duwen and @thl from @flutterchina. We are deeply grateful for their contributions. 
+- 完整准确的字典与词组库
+- 多种拼音格式：带声调、声调数字、不带声调、首字母
+- 多音字支持（词语、成语、地名）
+- 简体 ↔ 繁体转换
+- 支持用户自定义字典
+- 注音（Bopomofo）支持，参考 [python-zhuyin](https://github.com/rku1999/python-zhuyin)
 
-## Storage refactor (SQLite + cache)
+## 存储重构（SQLite + 缓存）
 
-- Pinyin/S2T/T2S dictionaries now live in `assets/pinyin.db` instead of giant Dart maps.
-- Runtime lookups use `sqlite3` with LRU in-memory caches and sync APIs by default.
+- 字典存放于 `assets/pinyin.db`，不再使用超大的 Dart map
+- 运行时使用 `sqlite3` 查询，并带 LRU 内存缓存
+- API 默认同步，若需要异步可由使用方自行封装
 
-## Pub
+## 安装
 
 ```yaml
 dependencies:
-  pinyin: ^2.0.2  #latest version
+  pinyin: ^3.3.0
 ```
 
-## Example
+## 快速开始
 
-``` dart
-
-// Import package
+```dart
 import 'package:pinyin/pinyin.dart';
 
 void main() {
   PinyinHelper.init();
-  String text = "天府广场";
 
-  //字符串拼音首字符
+  const text = '天府广场';
+
   PinyinHelper.getShortPinyin(text); // tfgc
-
-  //字符串首字拼音
   PinyinHelper.getFirstWordPinyin(text); // tian
+  PinyinHelper.getPinyin(text); // han yu pin yin fang an
+  PinyinHelper.getPinyin(
+    text,
+    separator: ' ',
+    format: PinyinFormat.WITHOUT_TONE,
+  );
 
-  //无法转换拼音会 throw PinyinException
-  PinyinHelper.getPinyin(text);
-  PinyinHelper.getPinyin(text, separator: " ", format: PinyinFormat.WITHOUT_TONE);//tian fu guang chang
-
-  //无法转换拼音 默认用' '替代
-  PinyinHelper.getPinyinE(text);
-  PinyinHelper.getPinyinE(text, separator: " ", defPinyin: '#', format: PinyinFormat.WITHOUT_TONE);//tian fu guang chang
-
-  //添加用户自定义字典
-  List<String> dict1 = ['耀=yào','老=lǎo'];
-  PinyinHelper.addPinyinDict(dict1);//拼音字典
-  List<String> dict2 = ['奇偶=jī,ǒu','成都=chéng,dū'];
-  PinyinHelper.addMultiPinyinDict(dict2);//多音字词组字典
-  List<String> dict3 = ['倆=俩','們=们'];
-  ChineseHelper.addChineseDict(dict3);//繁体字字典
+  PinyinHelper.getPinyinE(
+    text,
+    separator: ' ',
+    defPinyin: '#',
+    format: PinyinFormat.WITHOUT_TONE,
+  );
 }
-
 ```
 
-## SQLite assets
+## 自定义字典
 
-Run the local converter to generate `assets/pinyin.db` from the original maps:
+```dart
+PinyinHelper.addPinyinDict(['耀=yào', '老=lǎo']);
+PinyinHelper.addMultiPinyinDict(['奇偶=jī,ǒu', '成都=chéng,dū']);
+ChineseHelper.addChineseDict(['倆=俩', '們=们']);
+```
+
+## 简繁转换
+
+```dart
+ChineseHelper.convertToSimplifiedChinese('繁體字');
+ChineseHelper.convertToTraditionalChinese('简体字');
+```
+
+## 注音
+
+```dart
+ZhuyinHelper.getZhuyin('汉语拼音');
+ZhuyinHelper.getZhuyin('汉语拼音', format: PinyinFormat.WITH_TONE_MARK);
+ZhuyinHelper.getZhuyin('汉语拼音', format: PinyinFormat.WITH_TONE_NUMBER);
+```
+
+## SQLite 资源生成
+
+在本地从原始数据生成 `assets/pinyin.db`：
 
 ```bash
 dart run dev/tools/build_sqlite.dart
 ```
 
-## Screenshots
+## 截图
+
 ![](https://s1.ax1x.com/2020/11/05/B2fwQO.gif)
 
-## Changelog
-Please see the [Changelog](CHANGELOG.md) page to know what's recently changed.
+## 更新日志
 
-## Credits
-Thanks to [Unihan](https://www.unicode.org/Public/15.0.0/ucd/Unihan.zip), Wiktionary, [Handian](https://www.zdic.net/) and [mozillazg/pinyin-data](https://github.com/mozillazg/pinyin-data/blob/master/pinyin.txt).
+请查看 [CHANGELOG.md](CHANGELOG.md)。
+
+## 致谢
+
+- Unihan: https://www.unicode.org/Public/15.0.0/ucd/Unihan.zip
+- Wiktionary
+- 汉典: https://www.zdic.net/
+- mozillazg/pinyin-data: https://github.com/mozillazg/pinyin-data/blob/master/pinyin.txt
+- 原作者: @Sky24n, @tanghongliang, @duwen, @thl (flutterchina)
