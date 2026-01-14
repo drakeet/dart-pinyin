@@ -1,15 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:pinyin/data/phrase_map.dart';
-import 'package:pinyin/data/phrase_simp_to_trad.dart';
-import 'package:pinyin/data/phrase_trad_to_simp.dart';
-import 'package:pinyin/data/pinyin_map.dart';
-import 'package:pinyin/data/simp_to_trad_map.dart';
-import 'package:pinyin/data/trad_to_simp_map.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import 'package:pinyin/src/pinyin_constants.dart';
+
+import 'data/phrase_map.dart';
+import 'data/phrase_simp_to_trad.dart';
+import 'data/phrase_trad_to_simp.dart';
+import 'data/pinyin_map.dart';
+import 'data/simp_to_trad_map.dart';
+import 'data/trad_to_simp_map.dart';
 
 const String outputPath = 'assets/pinyin.db';
 
